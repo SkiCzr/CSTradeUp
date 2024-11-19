@@ -6,11 +6,11 @@ import urllib
 
 import requests
 
-from Code.Classes import Item
+from Code.Classes import Item, Collection
 
 
 def wait_random_time():
-    delay = random.uniform(2, 4)  # Generates a float between 2 and 4
+    delay = random.uniform(2, 3)  # Generates a float between 2 and 4
     print(f"Waiting for {delay:.2f} seconds...")
     time.sleep(delay)
     print("Done waiting!")
@@ -55,7 +55,9 @@ with open('skins.json', 'r', encoding="utf-8") as f:
 
 # List to store all item objects
 items = []
+collections = {}
 cont = 0
+z = 0
 # Iterate over each skin and create Item objects
 for item_data in data:
     tid = item_data.get('id')
@@ -71,22 +73,55 @@ for item_data in data:
     tpaint_index = item_data.get('paint_index')
     twears = item_data.get('wears')
     tcollections = item_data.get('collections')
-
-    if tcategory['name'] != "Knives" and tcategory['name'] != "Gloves":
+    if tcategory['name'] != "Knives" and tcategory['name'] != "Gloves" and trarity['name'] != "Contraband":
 
         for wear in twears:
             items.append(Item(tid, tname, tweapon, tcategory, tpattern, tmin_float, tmax_float, trarity, tpaint_index, wear, tcollections))
-            get_median_price(items[-1], cont)
-            print(len(items)-1)
-            wait_random_time()
+            z +=1
+            # get_median_price(items[-1], cont)
+            if  tcollections[0]["id"] not in collections.keys():
+                collections[tcollections[0]["id"]] = Collection(tcollections[0]["name"], tcollections[0]["id"])
 
-z = 0
+            collections[tcollections[0]["id"]].skins.get(trarity['name']).append(items[-1])
+            # wait_random_time()
+
+
+
+for item in items:
+
+    if item.rarity['name'] == "Consumer Grade":
+        item.upperSkins = collections.get(item.collections[0]['id']).skins.get("Industrial Grade")
+    if item.rarity['name'] == "Industrial Grade":
+        item.upperSkins = collections.get(item.collections[0]['id']).skins.get("Mil-Spec Grade")
+    if item.rarity['name'] == "Mil-Spec Grade":
+        item.upperSkins = collections.get(item.collections[0]['id']).skins.get("Restricted")
+    if item.rarity['name'] == "Restricted":
+        item.upperSkins = collections.get(item.collections[0]['id']).skins.get("Classified")
+    if item.rarity['name'] == "Classified":
+        item.upperSkins = collections.get(item.collections[0]['id']).skins.get("Covert")
+
+
+
+skins_by_rarity = {'Consumer Grade': [], 'Industrial Grade': [], 'Mil-Spec Grade': [], 'Restricted': [],
+                   'Classified': [], 'Covert': []}
+for item in items:
+    if item.upperSkins:
+        skins_by_rarity.get(item.rarity['name']).append(item)
 # Display all items
-print("Errors:", cont)
-get_median_price(items[0])
-print("Price:", items[0].price)
+# print("Errors:", cont)
+# #get_median_price(items[0])
+# print("Price:", items[0].price)
 
-with open("items.pkl", "wb") as f:
+for skin in skins_by_rarity['Consumer Grade']:
+    print(skin)
+
+with open("skins.pkl", "wb") as f:
     pickle.dump(items, f)
+
+with open("collections.pkl", "wb") as f:
+    pickle.dump(collections, f)
+
+with open("skins_by_rarity.pkl", "wb") as f:
+    pickle.dump(skins_by_rarity, f)
 
 
